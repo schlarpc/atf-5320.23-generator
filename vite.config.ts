@@ -4,6 +4,9 @@ import wasm from "vite-plugin-wasm";
 export default defineConfig({
   plugins: [wasm()],
 
+  // Use relative paths for GitHub Pages compatibility
+  base: "./",
+
   // Root points to project root where index.html is
   root: ".",
 

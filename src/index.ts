@@ -638,7 +638,9 @@ async function generatePDF(): Promise<void> {
               const sigWidth = sigRect[2] - sigRect[0];
               const sigHeight = sigRect[3] - sigRect[1];
 
-              console.log(`  Signature field rect: [${sigX}, ${sigY}, ${sigRect[2]}, ${sigRect[3]}]`);
+              console.log(
+                `  Signature field rect: [${sigX}, ${sigY}, ${sigRect[2]}, ${sigRect[3]}]`
+              );
               console.log(`  Field width: ${sigWidth}, height: ${sigHeight}`);
               console.log(`  Field bottom: ${sigRect[1]}, top: ${sigRect[3]}`);
 
@@ -652,7 +654,9 @@ async function generatePDF(): Promise<void> {
               const stampHeight = pdfHeight;
 
               console.log(`  Vertical offset: ${verticalOffset}`);
-              console.log(`  Stamp position: (${stampX}, ${stampY}), size: ${stampWidth}x${stampHeight}`);
+              console.log(
+                `  Stamp position: (${stampX}, ${stampY}), size: ${stampWidth}x${stampHeight}`
+              );
 
               // Create Stamp annotation (high-res image scaled to small size)
               const stampAnnot = page.createAnnotation("Stamp");
@@ -664,13 +668,15 @@ async function generatePDF(): Promise<void> {
               // Make it non-editable
               stampAnnot.setFlags(
                 mupdf.PDFAnnotation.IS_PRINT |
-                mupdf.PDFAnnotation.IS_LOCKED |
-                mupdf.PDFAnnotation.IS_LOCKED_CONTENTS
+                  mupdf.PDFAnnotation.IS_LOCKED |
+                  mupdf.PDFAnnotation.IS_LOCKED_CONTENTS
               );
 
               stampAnnot.update();
 
-              console.log(`  Placed signature stamp at (${stampX}, ${stampY}) with size ${stampWidth}x${stampHeight}`);
+              console.log(
+                `  Placed signature stamp at (${stampX}, ${stampY}) with size ${stampWidth}x${stampHeight}`
+              );
             }
           }
         }

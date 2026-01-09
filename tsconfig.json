@@ -15,6 +15,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,

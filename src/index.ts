@@ -1,85 +1,22 @@
 import * as mupdf from "mupdf";
+import { Signature, Encoding, Format } from "autopen";
+import { initializeForm } from "./form";
+import { prefillConfig } from "./prefill-config";
+import type { NFAFormData } from "./types";
+
+// Re-export types for backwards compatibility
+export type { NFAFormData };
+
+// Initialize form handling
+initializeForm();
+
+// Expose prefill config globally
+if (typeof window !== "undefined") {
+  window.PREFILL_CONFIG = prefillConfig;
+}
 
 // Special symbol to represent selected checkboxes/radio buttons
 const SELECTED = Symbol("SELECTED");
-
-// Type declarations for global functions
-declare global {
-  interface Window {
-    generatePDF: () => Promise<void>;
-    serializeForm: () => NFAFormData;
-  }
-}
-
-// Form data interface matching the HTML form structure
-export interface NFAFormData {
-  // Question 1
-  q1_formType?: string;
-
-  // Question 2
-  q2_fullName?: string;
-  q2_address?: string;
-
-  // Question 3
-  q3a_fullName?: string;
-  q3a_homeAddress?: string;
-  q3a_sameAs2?: boolean;
-  q3b_telephone?: string;
-  q3c_email?: string;
-  q3d_otherNames?: string;
-  q3f_ssn?: string;
-  q3g_dob?: string;
-  q3h_ethnicity?: string;
-  q3i_race?: string;
-
-  // Question 4
-  q4a_firearmType?: string;
-  q4a_firearmType_other?: string;
-  q4b_name?: string;
-  q4b_address?: string;
-  q4c_model?: string;
-  q4d_caliber?: string;
-  q4e_serial?: string;
-
-  // Question 5
-  q5_agencyName?: string;
-  q5_officialName?: string;
-  q5_officialTitle?: string;
-  q5_address?: string;
-
-  // Question 6 (prohibitors)
-  q6a_intent?: string;
-  q6b_sell?: string;
-  q6c_indictment?: string;
-  q6d_convicted?: string;
-  q6e_fugitive?: string;
-  q6f_user?: string;
-  q6g_mental?: string;
-  q6h_dishonorable?: string;
-  q6i_restraining?: string;
-  q6j_domestic?: string;
-  q6k_renounced?: string;
-  q6l_illegal?: string;
-  q6m1_nonimmigrant?: string;
-  q6m2_exception?: string;
-
-  // Question 7
-  q7_alienNumber?: string;
-
-  // Question 8
-  q8_hasUpin?: string;
-  q8_upinNumber?: string;
-
-  // Question 9
-  q9a_citizenship?: string[] | string;
-  q9a_citizenship_other?: string;
-  q9b_birthState?: string;
-  q9c_birthCountry?: string;
-  q9c_birthCountry_other?: string;
-
-  // Certification
-  certificationDate?: string;
-}
 
 // Function to get form data from HTML form
 function getFormData(): NFAFormData {
@@ -494,7 +431,7 @@ async function generatePDF(): Promise<void> {
 
     console.log("Loading PDF form from static file...");
     const response = await fetch(
-      "./static/f_5320.23_national_firearms_act_nfa_responsible_person_questionnaire.pdf"
+      "/f_5320.23_national_firearms_act_nfa_responsible_person_questionnaire.pdf"
     );
 
     if (!response.ok) {
@@ -608,6 +545,142 @@ async function generatePDF(): Promise<void> {
             console.error(`Error filling widget ${widgetNameVariant}:`, error);
           }
         }
+      }
+    }
+
+    // Add signature if present
+    if (formData.signature) {
+      console.log("Adding signature to PDF...");
+      try {
+        // Deserialize signature from Z85
+        const signature = Signature.deserializeFromString(formData.signature, Encoding.Z85, {
+          canvasWidth: 600,
+          canvasHeight: 200,
+        });
+
+        // Render signature at high resolution for crisp PDF embedding
+        // Use wide aspect ratio to match signature field width
+        const renderWidth = 1200; // High-res rendering (wide)
+        const renderHeight = 200; // High-res rendering
+        const pdfWidth = 100; // Display size in PDF (points)
+        const pdfHeight = 22; // Display size in PDF (points)
+
+        const signatureSVG = signature.render(Format.SVG, {
+          width: renderWidth,
+          height: renderHeight,
+          strokeWidth: 2,
+          strokeColor: "#000000",
+          spline: true,
+          contentFit: true,
+          contentPadding: 0.05, // 5% padding (must be in range [0, 0.5))
+        });
+
+        console.log("Signature SVG generated, rasterizing at high resolution...");
+
+        // Rasterize SVG to PNG using OffscreenCanvas at high resolution
+        // Use data URL instead of blob URL to avoid CSP issues
+        const svgDataUrl = "data:image/svg+xml;base64," + btoa(signatureSVG);
+
+        const img = new Image();
+        img.src = svgDataUrl;
+        await img.decode();
+
+        const offscreenCanvas = new OffscreenCanvas(renderWidth, renderHeight);
+        const ctx = offscreenCanvas.getContext("2d");
+        if (!ctx) {
+          throw new Error("Failed to get 2D context from OffscreenCanvas");
+        }
+
+        // Don't draw background - leave it transparent
+        // Draw SVG image at full resolution
+        ctx.drawImage(img, 0, 0, renderWidth, renderHeight);
+
+        // Convert to PNG blob
+        const pngBlob = await offscreenCanvas.convertToBlob({ type: "image/png" });
+        const pngArrayBuffer = await pngBlob.arrayBuffer();
+        const pngBytes = new Uint8Array(pngArrayBuffer);
+
+        console.log("Signature rasterized to PNG, creating mupdf Image...");
+
+        // Create mupdf Image from PNG data
+        const imageBuffer = new mupdf.Buffer(pngBytes);
+        const signatureImage = new mupdf.Image(imageBuffer);
+
+        // Add image to PDF document
+        const imageRef = doc.addImage(signatureImage);
+
+        console.log("Finding signature field widgets on all pages...");
+
+        const pageCount = doc.countPages();
+        console.log(`Searching ${pageCount} pages for signature fields`);
+
+        // Iterate through all pages to find signature field widgets
+        for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+          const page = doc.loadPage(pageIndex) as mupdf.PDFPage;
+          const widgets = page.getWidgets();
+
+          console.log(`Page ${pageIndex + 1}: found ${widgets.length} widgets`);
+
+          for (const widget of widgets) {
+            const fieldType = widget.getFieldType();
+            const fieldName = widget.getName();
+
+            console.log(`  Widget: "${fieldName}", type: "${fieldType}"`);
+
+            // Check if this is a signature field
+            if (fieldType === "signature") {
+              console.log(`Found signature field "${fieldName}" on page ${pageIndex + 1}`);
+
+              // Get the signature field's rectangle
+              const sigRect = widget.getRect();
+              const sigX = sigRect[0]; // Left edge
+              const sigY = sigRect[1]; // Bottom edge
+              const sigWidth = sigRect[2] - sigRect[0];
+              const sigHeight = sigRect[3] - sigRect[1];
+
+              console.log(`  Signature field rect: [${sigX}, ${sigY}, ${sigRect[2]}, ${sigRect[3]}]`);
+              console.log(`  Field width: ${sigWidth}, height: ${sigHeight}`);
+              console.log(`  Field bottom: ${sigRect[1]}, top: ${sigRect[3]}`);
+
+              // Position signature above the field, left-aligned
+              // In PDF coords, Y increases upward, so we add to move up
+              // Negative offset by field height to move it down
+              const verticalOffset = -sigHeight; // Negative offset equal to sig field height
+              const stampX = sigX;
+              const stampY = sigRect[3] + verticalOffset; // Position relative to field top
+              const stampWidth = pdfWidth;
+              const stampHeight = pdfHeight;
+
+              console.log(`  Vertical offset: ${verticalOffset}`);
+              console.log(`  Stamp position: (${stampX}, ${stampY}), size: ${stampWidth}x${stampHeight}`);
+
+              // Create Stamp annotation (high-res image scaled to small size)
+              const stampAnnot = page.createAnnotation("Stamp");
+              stampAnnot.setRect([stampX, stampY, stampX + stampWidth, stampY + stampHeight]);
+
+              // Set the stamp image (high-res PNG will be scaled down)
+              stampAnnot.setStampImage(signatureImage);
+
+              // Make it non-editable
+              stampAnnot.setFlags(
+                mupdf.PDFAnnotation.IS_PRINT |
+                mupdf.PDFAnnotation.IS_LOCKED |
+                mupdf.PDFAnnotation.IS_LOCKED_CONTENTS
+              );
+
+              stampAnnot.update();
+
+              console.log(`  Placed signature stamp at (${stampX}, ${stampY}) with size ${stampWidth}x${stampHeight}`);
+            }
+          }
+        }
+
+        console.log("Baking annotations into PDF...");
+        doc.bake(true, false); // Bake annotations, not widgets
+
+        console.log("Signature embedding complete!");
+      } catch (error) {
+        console.error("Failed to embed signature:", error);
       }
     }
 

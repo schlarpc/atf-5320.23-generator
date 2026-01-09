@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'wasm-unsafe-eval' 'self'; connect-src 'self'; style-src 'unsafe-inline' 'self'; form-action 'none';"
+      content="default-src 'none'; script-src 'wasm-unsafe-eval' 'self'; connect-src 'self'; style-src 'unsafe-inline' 'self'; img-src data:; form-action 'none';"
     />
     <title>NFA Responsible Person Questionnaire (5320.23)</title>
-    <link rel="stylesheet" href="./static/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <h1>National Firearms Act (NFA) Responsible Person Questionnaire (5320.23)</h1>
@@ -1143,6 +1143,26 @@
         </div>
       </fieldset>
 
+      <!-- Signature -->
+      <fieldset class="question-group">
+        <legend class="question-header">
+          <span>Signature of Responsible Person</span>
+          <button type="button" class="clear-question-group" title="Clear this section">
+            &times;
+          </button>
+        </legend>
+        <div class="signature-wrapper">
+          <div class="signature-pad-container">
+            <canvas id="signature-render-canvas" width="600" height="200" class="signature-render-canvas"></canvas>
+            <canvas id="signature-canvas" width="600" height="200" class="signature-canvas"></canvas>
+          </div>
+          <div class="signature-controls">
+            <button type="button" id="signature-undo" class="signature-button">Undo</button>
+            <button type="button" id="signature-clear" class="signature-button">Clear</button>
+          </div>
+        </div>
+      </fieldset>
+
       <!-- Certification Date -->
       <fieldset class="question-group">
         <legend class="question-header">
@@ -1173,8 +1193,7 @@
       </div>
     </form>
 
-    <!-- Load prefill configuration first, then form JavaScript -->
-    <script src="prefill-config.js"></script>
-    <script src="./static/form.js"></script>
+    <!-- Vite entry point -->
+    <script type="module" src="/src/index.ts"></script>
   </body>
 </html>

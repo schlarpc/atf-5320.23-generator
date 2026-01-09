@@ -1,16 +1,5 @@
-// Import the form data interface to ensure type safety
-import type { NFAFormData } from "./index";
-
-// Configuration for a single prefillable field
-export interface PrefillFieldConfig {
-  value: string | string[] | boolean;
-  readonly?: boolean; // If true: field is disabled and excluded from hash
-}
-
-// Type-safe prefill configuration using NFAFormData keys
-export type PrefillConfig = {
-  [K in keyof Partial<NFAFormData>]?: PrefillFieldConfig;
-};
+// Import type definitions
+import type { PrefillConfig } from "./types";
 
 /**
  * Prefill configuration for form fields.
@@ -36,17 +25,6 @@ export const prefillConfig: PrefillConfig = {
   // Add your prefill configuration here
   // Example: q1_formType: { value: "ATF FORM 4", readonly: true },
 };
-
-// Expose configuration globally for use in form.js
-declare global {
-  interface Window {
-    PREFILL_CONFIG?: PrefillConfig;
-  }
-}
-
-if (typeof window !== "undefined") {
-  window.PREFILL_CONFIG = prefillConfig;
-}
 
 // Also export as default for module compatibility
 export default prefillConfig;

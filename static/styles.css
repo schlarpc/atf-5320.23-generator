@@ -433,3 +433,84 @@ textarea:disabled {
     margin-left: 0;
   }
 }
+
+/* Signature styles */
+.signature-wrapper {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.signature-pad-container {
+  position: relative;
+  width: 600px;
+  height: 200px;
+  border: 2px solid #333;
+  background-color: #ffffff;
+}
+
+.signature-render-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.signature-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.signature-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  background-color: #e0e0e0;
+  border: 2px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.signature-button:hover {
+  background-color: #d0d0d0;
+}
+
+.signature-button:active {
+  background-color: #c0c0c0;
+}
+
+.signature-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .signature-wrapper {
+    flex-direction: column;
+  }
+
+  .signature-pad-container {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .signature-controls {
+    flex-direction: row;
+  }
+}

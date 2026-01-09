@@ -186,10 +186,12 @@ export function initializeForm(): void {
         if (!elements) continue;
 
         let value = data[key];
-        const isNodeList = "length" in elements;
+        // Check for RadioNodeList specifically - select elements also have 'length' property
+        const isNodeList = "length" in elements && !(elements instanceof HTMLSelectElement);
         const el = (isNodeList ? (elements as RadioNodeList)[0] : elements) as
           | HTMLInputElement
-          | HTMLTextAreaElement;
+          | HTMLTextAreaElement
+          | HTMLSelectElement;
 
         if (el.type === "radio") {
           const radios = elements as RadioNodeList;
